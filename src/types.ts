@@ -1,4 +1,4 @@
-import Vue, { Component } from 'vue';
+import Vue from 'vue';
 
 export interface VirtualGridInterface extends Vue {
     resetGrid: () => void;
@@ -11,5 +11,4 @@ export interface Item<P> {
     width?: number;
     columnSpan: number;
     newRow?: boolean;
-    renderComponent: Component;
 }
