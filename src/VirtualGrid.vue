@@ -100,7 +100,6 @@ export default class VirtualGrid<P> extends Vue {
         this.initiliazeGrid();
         window.addEventListener('resize', this.resize);
         window.addEventListener('scroll', this.scroll);
-        console.log(this.$slots);
     }
 
     beforeDestroy() {
