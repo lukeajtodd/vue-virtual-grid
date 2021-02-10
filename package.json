@@ -1,10 +1,9 @@
 {
-  "name": "vue-virtual-grid",
+  "name": "vue-virtual-grid-slotted",
   "version": "2.3.0",
   "author": "Corentin Mors <corentin@pixelswap.fr>",
   "license": "MIT",
   "repository": "github:mikescops/vue-virtual-grid",
-  "private": true,
   "source": "src/main.ts",
   "main": "./dist/virtual-grid.common.js",
   "unpkg": "./dist/virtual-grid.umd.js",
