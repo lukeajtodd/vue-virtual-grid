@@ -8,6 +8,7 @@ export const getGridGapDefault = (elementWidth: number, windowHeight: number) =>
 };
 
 export const getColumnCountDefault = (elementWidth: number) => {
+    console.log(elementWidth, Math.floor(elementWidth / 250));
     return Math.floor(elementWidth / 250);
 };
 

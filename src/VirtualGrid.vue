@@ -1,19 +1,19 @@
 <script lang="ts">
 import { Prop, Component, Vue, ProvideReactive } from 'vue-property-decorator';
 import {
-    getGridGapDefault,
-    getColumnCountDefault,
-    getWindowMarginDefault,
-    getItemRatioHeightDefault,
+    // getGridGapDefault,
+    // getColumnCountDefault,
+    // getWindowMarginDefault,
+    // getItemRatioHeightDefault,
     debugLog,
     execFunc,
 } from './utils';
 import { Item } from './types';
 
 interface ContainerData {
-    windowSize: ElementSize;
-    windowScroll: ElementScroll;
-    elementWindowOffset: number;
+    size: ElementSize;
+    scroll: ElementScroll;
+    elementOffset: number;
     elementSize: ElementSize;
 }
 
@@ -55,17 +55,11 @@ interface RenderData<P> {
 export default class VirtualGrid<P> extends Vue {
     @Prop({ required: true }) items: Item<P>[];
     @Prop({ default: () => () => true }) updateFunction: () => Promise<boolean>;
-    @Prop({ default: () => getGridGapDefault }) getGridGap: (elementWidth: number, windowHeight: number) => number;
-    @Prop({ default: () => getColumnCountDefault }) getColumnCount: (elementWidth: number) => number;
-    @Prop({ default: () => getWindowMarginDefault }) getWindowMargin: (windowHeight: number) => number;
-    @Prop({ default: () => getItemRatioHeightDefault }) getItemRatioHeight: (
-        height: number,
-        width: number,
-        columnWidth: number
-    ) => number;
     @Prop({ default: 500 }) updateTriggerMargin: number;
     @Prop({ default: null }) loader: Vue.Component;
     @Prop({ default: false }) debug: boolean;
+    @Prop({ default: false }) shrinkContent: boolean;
+    @Prop({ default: null }) container: HTMLDivElement
 
     @ProvideReactive() updateLock: boolean = false;
 
@@ -74,9 +68,9 @@ export default class VirtualGrid<P> extends Vue {
     @ProvideReactive() ref: Element = null;
 
     @ProvideReactive() containerData: ContainerData = {
-        windowSize: { height: 0, width: 0 },
-        windowScroll: { x: 0, y: 0 },
-        elementWindowOffset: 0,
+        size: { height: 0, width: 0 },
+        scroll: { x: 0, y: 0 },
+        elementOffset: 0,
         elementSize: { height: 0, width: 0 },
     };
 
@@ -96,16 +90,28 @@ export default class VirtualGrid<P> extends Vue {
         return this.computeRenderData(this.configData, this.containerData, this.layoutData);
     }
 
+    get gridStyle() {
+        const columns = this.shrinkContent ?
+            `repeat(${this.configData.columnCount}, min-content)` :
+            `repeat(${this.configData.columnCount}, 1fr)`;
+        return {
+            'grid-template-columns': columns,
+            'gap': `${this.configData.gridGap}px`,
+        };
+    }
+
     mounted() {
         this.ref = this.$refs.virtualGrid as Element;
         this.initiliazeGrid();
-        window.addEventListener('resize', this.resize);
-        window.addEventListener('scroll', this.scroll);
+        const winOrContainer = this.container ? this.container : window;
+        winOrContainer.addEventListener('resize', this.resize);
+        winOrContainer.addEventListener('scroll', this.scroll);
     }
 
     beforeDestroy() {
-        window.removeEventListener('resize', this.resize);
-        window.removeEventListener('scroll', this.scroll);
+        const winOrContainer = this.container ? this.container : window;
+        winOrContainer.removeEventListener('resize', this.resize);
+        winOrContainer.removeEventListener('scroll', this.scroll);
     }
 
     resize(): void {
@@ -133,14 +139,35 @@ export default class VirtualGrid<P> extends Vue {
             .then();
     }
 
+    getColumnCount(elementWidth: number) {
+        return Math.floor(elementWidth / 250);
+    }
+
+    getGridGap(elementWidth: number, windowHeight: number) {
+        if (elementWidth > 720 && windowHeight > 480) {
+            return 10;
+        } else {
+            return 5;
+        }
+    }
+
+    getWindowMargin(windowHeight: number) {
+        return Math.round(windowHeight * 1.5);
+    }
+
+    getItemRatioHeight(height: number, width: number, columnWidth: number) {
+        const imageRatio = height / width;
+        return Math.round(columnWidth * imageRatio);
+    }
+
     async loadMoreDataAsync(): Promise<void> {
         this.computeContainerData();
 
-        const windowTop = this.containerData.windowScroll.y;
-        const windowBottom = windowTop + this.containerData.windowSize.height;
+        const windowTop = this.containerData.scroll.y;
+        const windowBottom = windowTop + this.containerData.size.height;
         const bottomTrigger = Math.max(
             0,
-            this.containerData.elementWindowOffset + this.containerData.elementSize.height - this.updateTriggerMargin
+            this.containerData.elementOffset + this.containerData.elementSize.height - this.updateTriggerMargin
         );
 
         if (!this.bottomReached && windowBottom >= bottomTrigger && !this.updateLock) {
@@ -165,12 +192,12 @@ export default class VirtualGrid<P> extends Vue {
             return;
         }
 
-        const windowSize = this.getWindowSize();
-        const windowScroll = this.getWindowScroll();
-        const elementWindowOffset = this.getElementOffset(this.ref);
+        const size = this.getSize();
+        const scroll = this.getScroll();
+        const elementOffset = this.getElementOffset(this.ref);
         const elementSize = this.getElementSize(this.ref);
 
-        this.containerData = { windowSize, windowScroll, elementWindowOffset, elementSize };
+        this.containerData = { size, scroll, elementOffset, elementSize };
     }
 
     computeConfigData(containerData: ContainerData, items: Item<P>[]): ConfigData<P> {
@@ -185,11 +212,11 @@ export default class VirtualGrid<P> extends Vue {
 
         const elementWidth = containerData.elementSize ? containerData.elementSize.width : null;
 
-        const windowMargin = execFunc(this.getWindowMargin(containerData.windowSize.height));
+        const windowMargin = execFunc(this.getWindowMargin(containerData.size.height));
 
-        const gridGap = execFunc(this.getGridGap(elementWidth, containerData.windowSize.height));
+        const gridGap = execFunc(this.getGridGap(elementWidth, containerData.size.height));
 
-        const columnCount = execFunc(this.getColumnCount(elementWidth));
+        const columnCount = this.getColumnCount(elementWidth);
 
         const columnWidth = this.getColumnWidth(columnCount, gridGap, elementWidth);
 
@@ -292,15 +319,15 @@ export default class VirtualGrid<P> extends Vue {
         let firstRenderedRowNumber: null | number = null;
         let firstRenderedRowOffset: null | number = null;
 
-        if (containerData.elementWindowOffset !== null) {
-            const elementWindowOffset = containerData.elementWindowOffset;
+        if (containerData.elementOffset !== null) {
+            const elementOffset = containerData.elementOffset;
 
             for (const cell of layoutData.cells) {
-                const cellTop = elementWindowOffset + cell.offset;
+                const cellTop = elementOffset + cell.offset;
                 const cellBottom = cellTop + cell.height;
 
-                const windowTop = containerData.windowScroll.y;
-                const windowBottom = windowTop + containerData.windowSize.height;
+                const windowTop = containerData.scroll.y;
+                const windowBottom = windowTop + containerData.size.height;
 
                 const renderTop = windowTop - configData.windowMargin;
                 const renderBottom = windowBottom + configData.windowMargin;
@@ -366,10 +393,10 @@ export default class VirtualGrid<P> extends Vue {
         return a.width === b.width && a.height === b.height;
     }
 
-    getWindowSize(): ElementSize {
+    getSize(): ElementSize {
         return {
-            width: window.innerWidth,
-            height: window.innerHeight,
+            width: this.container ? this.container.clientWidth : window.innerWidth,
+            height: this.container ? this.container.clientHeight : window.innerHeight,
         };
     }
 
@@ -385,15 +412,16 @@ export default class VirtualGrid<P> extends Vue {
         return a.x === b.x && a.y === b.y;
     }
 
-    getWindowScroll(): ElementScroll {
+    getScroll(): ElementScroll {
         return {
-            x: window.scrollX,
-            y: window.scrollY,
+            x: this.container ? this.container.scrollLeft : window.scrollX,
+            y: this.container ? this.container.scrollTop : window.scrollY,
         };
     }
 
     getElementOffset(element: Element) {
-        return window.scrollY + element.getBoundingClientRect().top;
+        const scroll = this.container ? this.container.scrollTop : window.scrollY;
+        return scroll + element.getBoundingClientRect().top;
     }
 }
 </script>
@@ -414,10 +442,7 @@ export default class VirtualGrid<P> extends Vue {
     >
         <div
             class="grid"
-            :style="{
-                'grid-template-columns': `repeat(${configData.columnCount}, 1fr)`,
-                'gap': `${configData.gridGap}px`,
-            }"
+            :style="gridStyle"
         >
             <div
                 v-for="item in renderData.cellsToRender"
