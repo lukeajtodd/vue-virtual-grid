@@ -454,7 +454,9 @@ export default class VirtualGrid<P> extends Vue {
                     'grid-row-start': getGridRowStart(item, renderData),
                 }"
             >
-                <component :is="item.renderComponent" :item="item" v-on="$listeners" />
+                <slot
+                    :item="item"
+                />
             </div>
         </div>
         <component :is="loadingBatch && loader" />

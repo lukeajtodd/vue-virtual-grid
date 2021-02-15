@@ -10,7 +10,17 @@
             :debug="true"
             :loader="loaderComponent"
             @event-test="alertTest"
-        />
+        >
+            <template slot="default" slot-scope="{ item, listeners }">
+                <img
+                    v-on="listeners"
+                    :src="item.injected.url"
+                    :title="item.injected.alt"
+                    :style="{ height: item.height + 'px' }"
+                    class="image blah"
+                />
+            </template>
+        </VirtualGrid>
     </div>
 </template>
 
