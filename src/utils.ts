@@ -27,3 +27,11 @@ export const debugLog = (condition: boolean, ...args: any[]) => {
         console.debug(...args);
     }
 };
+
+export const execFunc = (fnc: any) => {
+    if (typeof fnc === 'function') {
+        return fnc();
+    }
+
+    return fnc;
+};

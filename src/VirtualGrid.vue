@@ -6,6 +6,7 @@ import {
     getWindowMarginDefault,
     getItemRatioHeightDefault,
     debugLog,
+    execFunc,
 } from './utils';
 import { Item } from './types';
 
@@ -184,11 +185,11 @@ export default class VirtualGrid<P> extends Vue {
 
         const elementWidth = containerData.elementSize ? containerData.elementSize.width : null;
 
-        const windowMargin = this.getWindowMargin(containerData.windowSize.height);
+        const windowMargin = execFunc(this.getWindowMargin(containerData.windowSize.height));
 
-        const gridGap = this.getGridGap(elementWidth, containerData.windowSize.height);
+        const gridGap = execFunc(this.getGridGap(elementWidth, containerData.windowSize.height));
 
-        const columnCount = this.getColumnCount(elementWidth);
+        const columnCount = execFunc(this.getColumnCount(elementWidth));
 
         const columnWidth = this.getColumnWidth(columnCount, gridGap, elementWidth);
 
@@ -202,7 +203,7 @@ export default class VirtualGrid<P> extends Vue {
             const imageWidth = columnWidth * item.columnSpan + gridGap * (item.columnSpan - 1);
             return {
                 ...item,
-                height: this.getItemRatioHeight(item.height, item.width, imageWidth),
+                height: execFunc(this.getItemRatioHeight(item.height, item.width, imageWidth)),
                 width: imageWidth,
             };
         });
