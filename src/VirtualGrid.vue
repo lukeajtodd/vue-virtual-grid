@@ -104,13 +104,13 @@ export default class VirtualGrid<P> extends Vue {
         this.ref = this.$refs.virtualGrid as Element;
         this.initiliazeGrid();
         const winOrContainer = this.container ? this.container : window;
-        winOrContainer.addEventListener('resize', this.resize);
+        window.addEventListener('resize', this.resize);
         winOrContainer.addEventListener('scroll', this.scroll);
     }
 
     beforeDestroy() {
         const winOrContainer = this.container ? this.container : window;
-        winOrContainer.removeEventListener('resize', this.resize);
+        window.removeEventListener('resize', this.resize);
         winOrContainer.removeEventListener('scroll', this.scroll);
     }
 
@@ -140,7 +140,7 @@ export default class VirtualGrid<P> extends Vue {
     }
 
     getColumnCount(elementWidth: number) {
-        return Math.floor(elementWidth / 250);
+        return Math.floor(elementWidth / 150);
     }
 
     getGridGap(elementWidth: number, windowHeight: number) {
